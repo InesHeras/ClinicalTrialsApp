@@ -8,4 +8,4 @@ Includes:
 - Strategy vs reality comparison (GSK case study)
 
 GSK pipeline data is scraped locally and stored as CSV due to Streamlit Cloud limitations.
- 
+https://clinicaltrialsapp-nmgnnzfer4gu23qwtca3z7.streamlit.app/
