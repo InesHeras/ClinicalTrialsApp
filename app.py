@@ -14,7 +14,7 @@ def load_clean_data():
     df = clean_trials_df(df_raw)
     df_countries, df_collabs, df_conditions = make_long_tables(df)
 
-    gsk = load_gsk_pipeline("gsk_pipeline_scraped_20251205_185707.csv")
+    gsk = load_gsk_pipeline("gsk_pipeline_scraped_20251214_113943.csv")
     return df, df_countries, df_collabs, df_conditions, gsk
 
 
