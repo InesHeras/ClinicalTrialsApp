@@ -14,9 +14,8 @@ def load_clean_data():
     df = clean_trials_df(df_raw)
     df_countries, df_collabs, df_conditions = make_long_tables(df)
 
-    gsk = load_gsk_pipeline("gsk_pipeline_scraped_20251205_185707.csv")
+    gsk = load_gsk_pipeline("gsk_pipeline_scraped_20251214_113943.csv")
     return df, df_countries, df_collabs, df_conditions, gsk
-
 
 
 df, df_countries, df_collabs, df_conditions, gsk = load_clean_data()
@@ -24,8 +23,9 @@ df, df_countries, df_collabs, df_conditions, gsk = load_clean_data()
 
 st.title("Ensayos activos (últimos 5 años)")
 
+# -----------------
 # SIDEBAR FILTROS
-
+# -----------------
 st.sidebar.header("Filtros")
 
 min_year = int(df["start_year"].min()) if pd.notna(df["start_year"].min()) else 2020
@@ -46,15 +46,15 @@ phase_sel = st.sidebar.multiselect("Fase", phase_options, default=phase_options)
 
 only_big = st.sidebar.checkbox("Solo Big Pharma", value=False)
 
-# Sponsor selector (leadSponsor_clean)
 sponsor_options = sorted(df["leadSponsor_clean"].dropna().unique().tolist())
 sponsor_sel = st.sidebar.multiselect("Lead sponsor", sponsor_options, default=[])
 
-# País
 country_options = sorted(df_countries["country"].dropna().unique().tolist())
 country_sel = st.sidebar.multiselect("País", country_options, default=[])
 
-# APLICAR FILTROS BASE EN df (1 fila = 1 ensayo)
+# -----------------
+# APLICAR FILTROS
+# -----------------
 mask = (
     df["start_year"].between(year_range[0], year_range[1], inclusive="both")
     & df["therapeutic_area"].isin(area_sel)
@@ -73,11 +73,12 @@ if country_sel:
     ids_in_countries = df_countries[df_countries["country"].isin(country_sel)]["nctId"].unique()
     df_f = df_f[df_f["nctId"].isin(ids_in_countries)]
 
-# Tablas largas filtradas
 df_countries_f = df_countries[df_countries["nctId"].isin(df_f["nctId"])].copy()
 df_conditions_f = df_conditions[df_conditions["nctId"].isin(df_f["nctId"])].copy()
 
+# -----------------
 # KPIs
+# -----------------
 k1, k2, k3, k4 = st.columns(4)
 with k1:
     st.metric("Ensayos", f"{len(df_f):,}")
@@ -94,7 +95,9 @@ st.divider()
 
 tab1, tab2, tab3 = st.tabs(["Panorama", "Mapa", "Enfermedades"])
 
+# =========================
 # TAB 1: PANORAMA
+# =========================
 with tab1:
     c1, c2 = st.columns(2)
 
@@ -160,7 +163,9 @@ with tab1:
     )
     st.altair_chart(chart_ts, use_container_width=True)
 
+# =========================
 # TAB 2: MAPA
+# =========================
 with tab2:
     st.subheader("Distribución geográfica (por país)")
     country_counts = (
@@ -184,7 +189,9 @@ with tab2:
     st.subheader("Top 20 países")
     st.dataframe(country_counts.head(20), use_container_width=True)
 
-# TAB 3: ENFERMEDADES (todas las condiciones)
+# =========================
+# TAB 3: ENFERMEDADES
+# =========================
 with tab3:
     st.subheader("Enfermedades más investigadas según el nº de ensayos activos")
     top_n = st.slider("Top N", 10, 50, 20)
@@ -213,29 +220,11 @@ with tab3:
     )
     st.altair_chart(chart_cond, use_container_width=True)
 
-    st.subheader("Buscar una condición concreta")
-    q = st.text_input("Texto (ej: diabetes, breast, covid, asthma)", value="")
-    if q.strip():
-        hits = df_conditions_f[df_conditions_f["condition"].str.contains(q, case=False, na=False)]
-        st.write(f"Coincidencias: {hits['nctId'].nunique():,} ensayos (por condición)")
-        # Mostrar ensayos asociados 
-        ids = hits["nctId"].unique()[:200]
-        show = df_f[df_f["nctId"].isin(ids)][["nctId", "briefTitle", "phase", "therapeutic_area", "leadSponsor"]].head(200)
-        st.dataframe(show, use_container_width=True)
-
-st.divider()
-st.subheader("Lista de ensayos filtrados")
-cols = ["nctId", "briefTitle", "therapeutic_area", "phase", "overallStatus", "leadSponsor", "countries", "startDate"]
-show_cols = [c for c in cols if c in df_f.columns]
-st.dataframe(df_f[show_cols].head(200), use_container_width=True)
-
-
 st.divider()
 st.subheader("GSK: estrategia declarada vs actividad en ensayos")
 
 colA, colB = st.columns(2)
 
-#Pipeline GSK: distribución por área terapéutica
 gsk_area = (
     gsk["therapeutic_area_std"]
     .value_counts()
@@ -243,21 +232,17 @@ gsk_area = (
     .reset_index(name="n_assets")
 )
 
-chart_gsk = (
-    alt.Chart(gsk_area)
-    .mark_bar()
-    .encode(
-        x=alt.X("n_assets:Q", title="Nº activos en pipeline"),
-        y=alt.Y("therapeutic_area:N", sort="-x", title=None),
-        tooltip=["therapeutic_area:N", "n_assets:Q"],
-    )
-    .properties(height=360, title="Pipeline GSK: áreas terapéuticas (lo que declara)")
-)
-
 with colA:
-    st.altair_chart(chart_gsk, use_container_width=True)
+    st.altair_chart(
+        alt.Chart(gsk_area)
+        .mark_bar()
+        .encode(
+            x="n_assets:Q",
+            y=alt.Y("therapeutic_area:N", sort="-x"),
+        ),
+        use_container_width=True,
+    )
 
-# Ensayos (API): distribución por área (actividad real)
 
 compare_mode = st.radio(
     "Comparar ensayos contra:",
@@ -265,8 +250,8 @@ compare_mode = st.radio(
     horizontal=True
 )
 
-df_compare = df_f.copy()  # df_f es df ya filtrado con los filtrosdel sidebar
-if compare_mode == "Solo Big Pharma (filtrados)":
+df_compare = df_f.copy()
+if compare_mode == "Solo Big Pharma":
     df_compare = df_compare[df_compare["is_big_pharma"] == True]
 
 trials_area = (
@@ -276,46 +261,13 @@ trials_area = (
     .reset_index(name="n_trials")
 )
 
-chart_trials = (
-    alt.Chart(trials_area)
-    .mark_bar()
-    .encode(
-        x=alt.X("n_trials:Q", title="Nº ensayos"),
-        y=alt.Y("therapeutic_area:N", sort="-x", title=None),
-        tooltip=["therapeutic_area:N", "n_trials:Q"],
-    )
-    .properties(height=360, title="Ensayos activos: áreas terapéuticas (lo que ocurre en el mundo real)")
-)
-
 with colB:
-    st.altair_chart(chart_trials, use_container_width=True)
-
-# Gráfico comparativo combinado (normalizado a %)
-st.markdown("### Comparativa normalizada (porcentaje)")
-
-gsk_pct = gsk_area.copy()
-gsk_pct["pct"] = 100 * gsk_pct["n_assets"] / max(gsk_pct["n_assets"].sum(), 1)
-gsk_pct["source"] = "GSK pipeline"
-
-trials_pct = trials_area.copy()
-trials_pct["pct"] = 100 * trials_pct["n_trials"] / max(trials_pct["n_trials"].sum(), 1)
-trials_pct["source"] = "Clinical trials"
-
-# Unimos en un df común
-gsk_pct = gsk_pct.rename(columns={"therapeutic_area": "area"})[["area", "pct", "source"]]
-trials_pct = trials_pct.rename(columns={"therapeutic_area": "area"})[["area", "pct", "source"]]
-cmp = pd.concat([gsk_pct, trials_pct], ignore_index=True)
-
-chart_cmp = (
-    alt.Chart(cmp)
-    .mark_bar()
-    .encode(
-        x=alt.X("pct:Q", title="% dentro de cada fuente"),
-        y=alt.Y("area:N", sort="-x", title=None),
-        color=alt.Color("source:N", title="Fuente"),
-        tooltip=["area:N", "source:N", alt.Tooltip("pct:Q", format=".1f")],
+    st.altair_chart(
+        alt.Chart(trials_area)
+        .mark_bar()
+        .encode(
+            x="n_trials:Q",
+            y=alt.Y("therapeutic_area:N", sort="-x"),
+        ),
+        use_container_width=True,
     )
-    .properties(height=420, title="¿Dónde pone el foco GSK vs dónde se concentran los ensayos?")
-)
-
-st.altair_chart(chart_cmp, use_container_width=True)
