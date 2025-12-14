@@ -11,16 +11,14 @@ def load_raw_data(path="trials_last_5_years.csv") -> pd.DataFrame:
 def clean_trials_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # --- Convierte columnas que son listas guardadas como string
+    # Convierte columnas que son listas guardadas como string
     for col in ["countries", "collaborators", "conditions"]:
         if col in df.columns:
             df[col] = df[col].apply(
                 lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith("[") else x
             )
 
-    # =========================
     # FECHAS
-    # =========================
     for col in ["startDate", "primaryCompletionDate", "completionDate"]:
         if col in df.columns:
             df[col + "_dt"] = pd.to_datetime(df[col], errors="coerce")
@@ -28,9 +26,7 @@ def clean_trials_df(df: pd.DataFrame) -> pd.DataFrame:
     df["start_year"] = df["startDate_dt"].dt.year
     df["start_month"] = df["startDate_dt"].dt.to_period("M").astype(str)
 
-    # =========================
     # NORMALIZACIÓN DE TEXTO
-    # =========================
     def norm_text(x):
         if not isinstance(x, str):
             return x
@@ -52,9 +48,7 @@ def clean_trials_df(df: pd.DataFrame) -> pd.DataFrame:
         if col in df.columns:
             df[col] = df[col].apply(norm_text)
 
-    # =========================
     # LIMPIEZA DE SPONSOR
-    # =========================
     def clean_sponsor(s):
         if not isinstance(s, str) or not s.strip():
             return None
@@ -66,9 +60,7 @@ def clean_trials_df(df: pd.DataFrame) -> pd.DataFrame:
 
     df["leadSponsor_clean"] = df["leadSponsor"].apply(clean_sponsor)
 
-    # =========================
     # ÁREA TERAPÉUTICA
-    # =========================
     THERAPEUTIC_AREAS = {
         "Oncology": ["cancer", "tumor", "carcinoma", "neoplasm", "lymphoma", "leukemia", "melanoma", "sarcoma"],
         "Cardiology": ["cardio", "heart", "coronary", "myocard", "hypertension", "stroke"],
@@ -90,9 +82,7 @@ def clean_trials_df(df: pd.DataFrame) -> pd.DataFrame:
 
     df["therapeutic_area"] = df["condition"].apply(map_area)
 
-    # =========================
     # FLAG BIG PHARMA
-    # =========================
     BIG_PHARMA_PATTERNS = [
         r"\bpfizer\b",
         r"\broche\b|\bgenentech\b",
@@ -161,7 +151,7 @@ def make_long_tables(df: pd.DataFrame):
         .rename(columns={"collaborators": "collaborator"})
     )
 
-    # 👇 NUEVO: tabla larga por condición (todas)
+    # tabla larga por condición 
     df_conditions = (
         df[["nctId", "conditions"]]
         .explode("conditions")
@@ -176,7 +166,7 @@ def make_long_tables(df: pd.DataFrame):
 def load_gsk_pipeline(path="gsk_pipeline_scraped_20251205_185707.csv") -> pd.DataFrame:
     df = pd.read_csv(path, sep=";")
 
-    # Normaliza nombres de columnas (por si vienen con espacios o mayúsculas)
+    # Normaliza nombres de columnas 
     df.columns = [c.strip() for c in df.columns]
 
     # Forzamos las columnas esperadas (si alguna falta, la creamos)
@@ -185,7 +175,7 @@ def load_gsk_pipeline(path="gsk_pipeline_scraped_20251205_185707.csv") -> pd.Dat
         if c not in df.columns:
             df[c] = None
 
-    # Limpieza básica de texto
+    # Limpieza  de texto
     def norm(x):
         if not isinstance(x, str):
             return x
@@ -215,7 +205,7 @@ def load_gsk_pipeline(path="gsk_pipeline_scraped_20251205_185707.csv") -> pd.Dat
 
     df["phase_std"] = df["Phase"].apply(normalize_phase)
 
-    # Mapeo a tus áreas terapéuticas (las mismas que usas en trials)
+    # Mapeo   áreas terapéuticas 
     def map_to_therapeutic_area(therapy_area, indication):
         text = f"{therapy_area or ''} {indication or ''}".lower()
 

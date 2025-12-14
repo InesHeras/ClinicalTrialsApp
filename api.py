@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 import time
 from typing import Any, Dict, Iterable, List, Optional
-
 import pandas as pd
 import requests
 from requests.adapters import HTTPAdapter
@@ -52,7 +50,7 @@ def fetch_studies_raw(
         "sort": sort,
     }
 
-    # Queries “rápidas”
+    
     if query_cond:
         params["query.cond"] = query_cond
     if query_intr:
