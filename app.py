@@ -14,7 +14,7 @@ def load_clean_data():
     df = clean_trials_df(df_raw)
     df_countries, df_collabs, df_conditions = make_long_tables(df)
 
-    gsk = load_gsk_pipeline("gsk_pipeline_scraped_20251214_113943.csv")
+    gsk = load_gsk_pipeline("gsk_pipeline_scraped_20251205_185707.csv")
     return df, df_countries, df_collabs, df_conditions, gsk
 
 
@@ -24,9 +24,8 @@ df, df_countries, df_collabs, df_conditions, gsk = load_clean_data()
 
 st.title("Ensayos activos (últimos 5 años)")
 
-# -----------------
 # SIDEBAR FILTROS
-# -----------------
+
 st.sidebar.header("Filtros")
 
 min_year = int(df["start_year"].min()) if pd.notna(df["start_year"].min()) else 2020
@@ -55,9 +54,7 @@ sponsor_sel = st.sidebar.multiselect("Lead sponsor", sponsor_options, default=[]
 country_options = sorted(df_countries["country"].dropna().unique().tolist())
 country_sel = st.sidebar.multiselect("País", country_options, default=[])
 
-# -----------------
 # APLICAR FILTROS BASE EN df (1 fila = 1 ensayo)
-# -----------------
 mask = (
     df["start_year"].between(year_range[0], year_range[1], inclusive="both")
     & df["therapeutic_area"].isin(area_sel)
@@ -80,9 +77,7 @@ if country_sel:
 df_countries_f = df_countries[df_countries["nctId"].isin(df_f["nctId"])].copy()
 df_conditions_f = df_conditions[df_conditions["nctId"].isin(df_f["nctId"])].copy()
 
-# -----------------
 # KPIs
-# -----------------
 k1, k2, k3, k4 = st.columns(4)
 with k1:
     st.metric("Ensayos", f"{len(df_f):,}")
@@ -99,9 +94,7 @@ st.divider()
 
 tab1, tab2, tab3 = st.tabs(["Panorama", "Mapa", "Enfermedades"])
 
-# =========================
 # TAB 1: PANORAMA
-# =========================
 with tab1:
     c1, c2 = st.columns(2)
 
@@ -167,9 +160,7 @@ with tab1:
     )
     st.altair_chart(chart_ts, use_container_width=True)
 
-# =========================
 # TAB 2: MAPA
-# =========================
 with tab2:
     st.subheader("Distribución geográfica (por país)")
     country_counts = (
@@ -178,7 +169,6 @@ with tab2:
         .reset_index(name="n_trials")
     )
 
-    # Choropleth por nombre de país (algunos territorios raros pueden no pintar)
     fig = px.choropleth(
         country_counts,
         locations="country",
@@ -194,9 +184,7 @@ with tab2:
     st.subheader("Top 20 países")
     st.dataframe(country_counts.head(20), use_container_width=True)
 
-# =========================
 # TAB 3: ENFERMEDADES (todas las condiciones)
-# =========================
 with tab3:
     st.subheader("Enfermedades más investigadas según el nº de ensayos activos")
     top_n = st.slider("Top N", 10, 50, 20)
@@ -230,7 +218,7 @@ with tab3:
     if q.strip():
         hits = df_conditions_f[df_conditions_f["condition"].str.contains(q, case=False, na=False)]
         st.write(f"Coincidencias: {hits['nctId'].nunique():,} ensayos (por condición)")
-        # Mostrar ensayos asociados (muestra)
+        # Mostrar ensayos asociados 
         ids = hits["nctId"].unique()[:200]
         show = df_f[df_f["nctId"].isin(ids)][["nctId", "briefTitle", "phase", "therapeutic_area", "leadSponsor"]].head(200)
         st.dataframe(show, use_container_width=True)
@@ -247,7 +235,7 @@ st.subheader("GSK: estrategia declarada vs actividad en ensayos")
 
 colA, colB = st.columns(2)
 
-# 1) Pipeline GSK: distribución por área terapéutica (estrategia)
+#Pipeline GSK: distribución por área terapéutica
 gsk_area = (
     gsk["therapeutic_area_std"]
     .value_counts()
@@ -269,17 +257,15 @@ chart_gsk = (
 with colA:
     st.altair_chart(chart_gsk, use_container_width=True)
 
-# 2) Ensayos (API): distribución por área (actividad real)
-# Aquí tienes dos opciones:
-#   (a) comparar contra TODOS los ensayos filtrados (df_f)
-#   (b) comparar contra Big Pharma (más justo)
+# Ensayos (API): distribución por área (actividad real)
+
 compare_mode = st.radio(
     "Comparar ensayos contra:",
     ["Todos los ensayos", "Solo Big Pharma"],
     horizontal=True
 )
 
-df_compare = df_f.copy()  # df_f es tu df ya filtrado por sidebar
+df_compare = df_f.copy()  # df_f es df ya filtrado con los filtrosdel sidebar
 if compare_mode == "Solo Big Pharma (filtrados)":
     df_compare = df_compare[df_compare["is_big_pharma"] == True]
 
@@ -304,7 +290,7 @@ chart_trials = (
 with colB:
     st.altair_chart(chart_trials, use_container_width=True)
 
-# 3) Gráfico comparativo combinado (normalizado a %)
+# Gráfico comparativo combinado (normalizado a %)
 st.markdown("### Comparativa normalizada (porcentaje)")
 
 gsk_pct = gsk_area.copy()
