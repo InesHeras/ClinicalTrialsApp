@@ -23,9 +23,7 @@ df, df_countries, df_collabs, df_conditions, gsk = load_clean_data()
 
 st.title("Ensayos activos (últimos 5 años)")
 
-# -----------------
 # SIDEBAR FILTROS
-# -----------------
 st.sidebar.header("Filtros")
 
 min_year = int(df["start_year"].min()) if pd.notna(df["start_year"].min()) else 2020
@@ -52,9 +50,7 @@ sponsor_sel = st.sidebar.multiselect("Lead sponsor", sponsor_options, default=[]
 country_options = sorted(df_countries["country"].dropna().unique().tolist())
 country_sel = st.sidebar.multiselect("País", country_options, default=[])
 
-# -----------------
 # APLICAR FILTROS
-# -----------------
 mask = (
     df["start_year"].between(year_range[0], year_range[1], inclusive="both")
     & df["therapeutic_area"].isin(area_sel)
@@ -76,9 +72,7 @@ if country_sel:
 df_countries_f = df_countries[df_countries["nctId"].isin(df_f["nctId"])].copy()
 df_conditions_f = df_conditions[df_conditions["nctId"].isin(df_f["nctId"])].copy()
 
-# -----------------
 # KPIs
-# -----------------
 k1, k2, k3, k4 = st.columns(4)
 with k1:
     st.metric("Ensayos", f"{len(df_f):,}")
@@ -95,9 +89,7 @@ st.divider()
 
 tab1, tab2, tab3 = st.tabs(["Panorama", "Mapa", "Enfermedades"])
 
-# =========================
 # TAB 1: PANORAMA
-# =========================
 with tab1:
     c1, c2 = st.columns(2)
 
@@ -163,9 +155,7 @@ with tab1:
     )
     st.altair_chart(chart_ts, use_container_width=True)
 
-# =========================
 # TAB 2: MAPA
-# =========================
 with tab2:
     st.subheader("Distribución geográfica (por país)")
     country_counts = (
@@ -189,9 +179,7 @@ with tab2:
     st.subheader("Top 20 países")
     st.dataframe(country_counts.head(20), use_container_width=True)
 
-# =========================
 # TAB 3: ENFERMEDADES
-# =========================
 with tab3:
     st.subheader("Enfermedades más investigadas según el nº de ensayos activos")
     top_n = st.slider("Top N", 10, 50, 20)
